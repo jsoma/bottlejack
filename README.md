@@ -7,7 +7,7 @@ Bottlejack can take all kinds of content and turn it into a perfectly customizab
 ## Installation
 
 ```
-npm install bottlejack
+npm install -g bottlejack
 ```
 
 ## Usage
