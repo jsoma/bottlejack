@@ -12,7 +12,7 @@ npm install -g bottlejack
 
 ## Usage
 
-For setup options, look at docs on [portfolio-autopublish](https://github.com/jsoma/portfolio-autopublish).
+For setup options, look at docs on [portfolio-autopublish](https://github.com/jsoma/portfolio-autopublish). They're a little out of date, though, so maybe look at `data.yaml` inside of the `examples` directory.
 
 File structure should look something like this:
 
@@ -20,7 +20,8 @@ File structure should look something like this:
 |-- data.yaml
 |-- templates
 |    |-- home.hbs
-|    +-- page.hbs
+|    +-- gdoc.hbs
+|    +-- html.hbs
 |-- static
      |-- style.css (or whatever)
 ```
