@@ -5,6 +5,7 @@ import Handlebars from "handlebars";
 import path from "path";
 import globby from "globby";
 import GDoc from "./sources/gdoc.js";
+import HtmlDoc from "./sources/html_doc.js";
 
 function parseArgumentsIntoOptions(rawArgs) {
   const args = arg(
@@ -52,6 +53,11 @@ class Page {
       await doc.process()
       this.options = {...doc.options, ...this.options}
     }
+    if (this.options.type === 'html') {
+      const doc = new HtmlDoc(this.options.filepath)
+      await doc.process()
+      this.options = {...doc.options, ...this.options}
+    }
     const relativePrefix = path.relative(path.dirname(savePath), rootPath);
     const content = this.template({...this.options, relativePrefix: relativePrefix })
     fs.mkdirSync(path.dirname(savePath), { recursive: true });
@@ -65,7 +71,7 @@ export async function cli(args) {
 
   const paths = await globby(options.templates);
   const templates = paths.reduce((memo, current) => {
-    const name = path.basename(current, ".hbs");
+    const name = path.basename(path.relative(options.templates, current), ".hbs");
     memo[name] = Handlebars.compile(fs.readFileSync(current, "utf-8"));
     return memo;
   }, {});
@@ -83,7 +89,8 @@ export async function cli(args) {
   hp.saveTo("docs");
 
   config.pages.forEach((p) => {
-    const page = new Page(p, templates.page);
+    let template = templates[p.template ? p.template : p.type];
+    const page = new Page(p, template);
     page.saveTo("docs");
   });
 }

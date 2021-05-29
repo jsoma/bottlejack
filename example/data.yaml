@@ -16,3 +16,12 @@ pages:
     title: this is the second project
     slug: second-project
     url: https://docs.google.com/document/d/1-ehYb4V3gtrS7LTlfqr27cZum1qGwX2KwczYLa1w-2Y/edit?usp=sharing
+  - type: html
+    title: this is the third project
+    slug: third-project
+    filepath: content/sample-page.html
+  - type: html
+    title: this is the third project
+    template: html_bootstrap
+    slug: yet-another-project
+    filepath: content/sample-page.html
