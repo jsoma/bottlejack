@@ -85,3 +85,23 @@ Each and every one of the `pages` gets turned into a ..... separate page.
 |`url`|Path to published Google Doc|*Only for `gdoc` types*|
 
 You're free to add other keys and have them be available in the template. For example, you could add a `published_at` to each page and then have a `{{ published_at }}` available in your template.
+
+## Publishing
+
+Because bottlejack publishes your content into the `/docs` directory, it works out-of-the-box for creating a site using GitHub Pages. It will also work perfectly fine with tools like [Netlify](https://www.netlify.com/).
+
+### A tiny walkthrough for GitHub Pages
+
+After you've run the `bottlejack` command, your content lives in `/docs`. Let's turn it into a GitHub Pages site!
+
+Make sure you've pushed your latest changes to GitHub. Then, from your repository, perform the following navigation steps:
+
+1. **Settings** from the repo top nav
+2. **Pages** on the right-hand nav
+3. Select **main** from the branch dropdown
+4. Select **/docs** from the folder dropdown
+5. **Save**
+
+Give it a few minutes and you should have a website published from the content in your `/docs` folder.
+
+To update with any changes, re-run the `bottlejack` command to update `/docs`, then use git to push your updates to the repo. A few minutes later your changes should be visible online.
