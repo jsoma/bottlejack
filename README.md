@@ -111,3 +111,8 @@ Make sure you've pushed your latest changes to GitHub. Then, from your repositor
 Give it a few minutes and you should have a website published from the content in your `/docs` folder.
 
 To update with any changes, re-run the `bottlejack` command to update `/docs`, then use git to push your updates to the repo. A few minutes later your changes should be visible online.
+
+## CLI options
+
+* `--debug` for more debugging info
+* `--version` for version info
