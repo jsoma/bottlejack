@@ -4,8 +4,16 @@ import YAML from "yaml";
 import Handlebars from "handlebars";
 import path from "path";
 import globby from "globby";
-import GDoc from "./sources/gdoc.js";
-import HtmlDoc from "./sources/html_doc.js";
+import Pino from "pino";
+import Page from "./page.js";
+import { version } from "../package.json";
+
+const logger = Pino({
+  prettyPrint: {
+    singleLine: true,
+    ignore: "pid,hostname",
+  },
+});
 
 function parseArgumentsIntoOptions(rawArgs) {
   const args = arg(
@@ -13,6 +21,8 @@ function parseArgumentsIntoOptions(rawArgs) {
       "--templates": String,
       "--static": String,
       "--data": String,
+      "--debug": Boolean,
+      "--version": Boolean,
       "-t": "--templates",
       "-s": "--static",
       "-d": "--data",
@@ -22,10 +32,12 @@ function parseArgumentsIntoOptions(rawArgs) {
     }
   );
   return {
-    output: args["--output"] || 'docs',
-    templates: args["--templates"] || 'templates',
-    static: args["--static"] || 'static',
-    data: args["--data"] || 'data.yaml',
+    output: args["--output"] || "docs",
+    templates: args["--templates"] || "templates",
+    static: args["--static"] || "static",
+    data: args["--data"] || "data.yaml",
+    debug: args["--debug"] || false,
+    version: args["--version"] || false,
   };
 }
 
@@ -35,62 +47,59 @@ function readConfig(filename) {
   return data;
 }
 
-class Page {
-  constructor(options, template) {
-    this.options = options;
-    this.template = template;
-  }
-
-  async saveTo(rootPath) {
-    let savePath = null;
-    if(this.options.slug && this.options.slug.indexOf(".html") != -1) {
-      savePath = path.join(rootPath, this.options.slug);
-    } else {
-      savePath = path.join(rootPath, this.options.slug || "", "index.html");
-    }
-    if (this.options.type === 'gdoc') {
-      const doc = new GDoc(this.options.url)
-      await doc.process()
-      this.options = {...doc.options, ...this.options}
-    }
-    if (this.options.type === 'html') {
-      const doc = new HtmlDoc(this.options.filepath)
-      await doc.process()
-      this.options = {...doc.options, ...this.options}
-    }
-    const relativePrefix = path.relative(path.dirname(savePath), rootPath);
-    const content = this.template({...this.options, relativePrefix: relativePrefix })
-    fs.mkdirSync(path.dirname(savePath), { recursive: true });
-    fs.writeFileSync(savePath, content);
-  }
-}
-
 export async function cli(args) {
   let options = parseArgumentsIntoOptions(args);
-  const config = readConfig(options["data"]);
+  if (options.version) {
+    console.log(version);
+    return;
+  }
 
+  logger.info(`Starting our run in ${process.cwd()}`);
+
+  if (options.debug) {
+    logger.level = "debug";
+  }
+  logger.debug({ msg: "Invoking with command-line options", ...options });
+
+  const config = readConfig(options["data"]);
+  logger.debug({ msg: "Config read from yaml", ...config });
+
+  logger.info(`Pulling templates from ${options.templates}`);
   const paths = await globby(options.templates);
+  logger.debug({ msg: `Found ${paths.length} files`, files: paths });
+
   const templates = paths.reduce((memo, current) => {
-    const name = path.basename(path.relative(options.templates, current), ".hbs");
+    const name = path.basename(
+      path.relative(options.templates, current),
+      ".hbs"
+    );
+    logger.debug(`Compiling template ${name} from ${current}`);
     memo[name] = Handlebars.compile(fs.readFileSync(current, "utf-8"));
     return memo;
   }, {});
 
   if (options.static) {
+    logger.info(`Moving static content from ${options.static}`);
     const statics = await globby(options.static);
+    logger.debug({ msg: `Found ${statics.length} files`, files: statics });
     statics.forEach((source) => {
-      const target = path.join("docs", path.relative(options.static, source))
+      const target = path.join("docs", path.relative(options.static, source));
       fs.mkdirSync(path.dirname(target), { recursive: true });
-      fs.copyFileSync(source, target)
+
+      logger.debug({ msg: "Copying", source, target });
+      fs.copyFileSync(source, target);
     });
+  } else {
+    logger.info(`No static folder specified`);
   }
 
-  const hp = new Page(config, templates.home);
+  logger.info("Compiling homepage");
+  const hp = new Page(config, templates.home, logger);
   hp.saveTo("docs");
 
-  config.pages.forEach((p) => {
+  config.pages.forEach((p, i) => {
     let template = templates[p.template ? p.template : p.type];
-    const page = new Page(p, template);
+    const page = new Page(p, template, logger.child({index: i}));
     page.saveTo("docs");
   });
 }

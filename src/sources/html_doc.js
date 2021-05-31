@@ -1,13 +1,14 @@
 import fs from "fs";
 
 export default class HtmlDoc {
-    constructor(filepath) {
-      this.filepath = filepath;
-      this.options = {}
-    }
-  
-    async process() {
-      console.log("Processing raw HTML from", this.filepath);
-      this.options.html_content = fs.readFileSync(this.filepath, 'utf-8')
-    }
+  constructor(filepath, logger) {
+    this.filepath = filepath;
+    this.options = {};
+    this.logger = logger.child({ filepath });
+  }
+
+  async process() {
+    this.logger.info(`Processing`);
+    this.options.html_content = fs.readFileSync(this.filepath, "utf-8");
+  }
 }

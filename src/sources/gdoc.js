@@ -1,23 +1,23 @@
 import archieml from "archieml";
 import fetch from "node-fetch";
 import cheerio from "cheerio";
-import fileType from 'file-type';
-import MarkdownIt from 'markdown-it';
+import fileType from "file-type";
+import MarkdownIt from "markdown-it";
+import Pino from "pino";
 
 const md = new MarkdownIt({
-    html: true,
-    linkify: false,
-    typographer: false
-})
+  html: true,
+  linkify: false,
+  typographer: false,
+});
 
 async function toBase64(src) {
-    const buffer = await fetch(src)
-        .then(res => res.buffer())
-    
-    const mime = await fileType.fromBuffer(buffer)
-    const b64 = await buffer.toString('base64')
+  const buffer = await fetch(src).then((res) => res.buffer());
 
-    return `data:${mime['mime']};base64,${b64}`
+  const mime = await fileType.fromBuffer(buffer);
+  const b64 = await buffer.toString("base64");
+
+  return `data:${mime["mime"]};base64,${b64}`;
 }
 
 async function toText(node, $) {
@@ -34,14 +34,16 @@ async function toText(node, $) {
   const nonTextNodes = item.contents().filter((d) => d.nodeType !== 3);
 
   if (nonTextNodes.length > 0) {
-    let content = await Promise.all(nonTextNodes
-      .map(async (i, e) => {
-        return await toText(e, $);
-      })
-      .toArray())
+    let content = await Promise.all(
+      nonTextNodes
+        .map(async (i, e) => {
+          return await toText(e, $);
+        })
+        .toArray()
+    );
 
     content = content.join("\n");
-    
+
     if (node.tagName === "h3") {
       return `<p class='label super-font'>${content}</p>`;
     } else {
@@ -49,39 +51,41 @@ async function toText(node, $) {
     }
   } else {
     if (node.tagName === "img") {
-        const b64Img = await toBase64(item.attr('src'));
-        let imgContent = "";
-        if(item.attr('title'))
-            imgContent += `<p class='label super-font'>${item.attr('title')}</p>`
+      const b64Img = await toBase64(item.attr("src"));
+      let imgContent = "";
+      if (item.attr("title"))
+        imgContent += `<p class='label super-font'>${item.attr("title")}</p>`;
 
-        if(item.attr('alt'))
-            imgContent += `<p class='label-text super-font'>${item.attr('alt')}</p>`
+      if (item.attr("alt"))
+        imgContent += `<p class='label-text super-font'>${item.attr(
+          "alt"
+        )}</p>`;
 
-            imgContent += `<p class='img'><img src='${b64Img}'></p>`
-        return "\n" + imgContent + "\n"
+      imgContent += `<p class='img'><img src='${b64Img}'></p>`;
+      return "\n" + imgContent + "\n";
     }
 
     if (node.tagName == "a") {
-      const href = item.attr('href')
+      const href = item.attr("href");
 
-      if(href.indexOf('datawrapper') !== -1) {
+      if (href.indexOf("datawrapper") !== -1) {
         let match = href.match(/https:\/\/datawrapper.dwcdn.net\/(.+)\/1\//);
-        if(!match) {
+        if (!match) {
           match = href.match(/datawrapper.de\/_\/(.*)\//);
         }
-        if(match && match.length > 1) {
+        if (match && match.length > 1) {
           const dw_code = match[1];
           const embed = `
           <div>
           <iframe title="A DataWrapper chart" aria-label="chart" id="datawrapper-chart-${dw_code}" src="https://datawrapper.dwcdn.net/${dw_code}/1/" scrolling="no" frameborder="0" style="width: 0; min-width: 100% !important; border: none;" height="431">
           </iframe>
           <script type="text/javascript">!function(){"use strict";window.addEventListener("message",(function(a){if(void 0!==a.data["datawrapper-height"])for(var e in a.data["datawrapper-height"]){var t=document.getElementById("datawrapper-chart-"+e)||document.querySelector("iframe[src*='"+e+"']");t&&(t.style.height=a.data["datawrapper-height"][e]+"px")}}))}();</script>
-          </div>`.replace(/^\s*/gm, ' ')
-          return embed
+          </div>`.replace(/^\s*/gm, " ");
+          return embed;
         }
       }
-      
-      return `<a href='${item.attr('href')}'>${item.text()}</a>`;
+
+      return `<a href='${item.attr("href")}'>${item.text()}</a>`;
     }
 
     if (node.tagName == "h3")
@@ -92,31 +96,37 @@ async function toText(node, $) {
 }
 
 export default class GDoc {
-  constructor(url) {
+  constructor(url, logger) {
     this.url = url;
     const match = this.url.match(/\/d\/([^/]*)/);
     this.code = match[1];
+    this.logger = logger.child({
+      code: this.code,
+    });
   }
 
   async process() {
+    this.logger.info("Processing");
     await this.processArchieml();
     await this.processHtml();
   }
 
   async processArchieml() {
     const textUrl = `https://docs.google.com/document/d/${this.code}/export?format=txt`;
-    console.log("Processing archieml from", textUrl);
+    this.logger.debug({ msg: "Processing ArchieML content", textUrl });
 
     const content = await (await fetch(textUrl)).text();
     this.options = archieml.load(content.replace(/:\/\//g, "COLON//"));
-    Object.keys(this.options).forEach(
-      (key) => (this.options[key] = this.options[key].replace(/COLON\/\//g, "://"))
-    );
+    const keys = Object.keys(this.options);
+    this.logger.debug({ msg: "Processing ArchieML keys", keys });
+    keys.forEach((key) => {
+      this.options[key] = this.options[key].replace(/COLON\/\//g, "://");
+    });
   }
 
   async processHtml() {
     const htmlUrl = `https://docs.google.com/document/d/${this.code}/export?format=html`;
-    console.log("Processing HTML from", htmlUrl);
+    this.logger.debug({ msg: "Processing HTML content", htmlUrl });
 
     const content = await (await fetch(htmlUrl)).text();
     const $ = cheerio.load(content);
@@ -135,21 +145,21 @@ export default class GDoc {
       if (tagName === "table") {
         contents = "<div class='fake-table'>";
         let rows = currentContent.find("tr").toArray();
-        for(const row of rows) {
-            contents += "<div>";
-            const cells = $(row).find("td").toArray();
-            for(const cell of cells) {
-                const results = await toText(cell, $)
-                contents += `<div>\n${results}\n</div>\n`;
-            }
-            contents += "</div>";
+        for (const row of rows) {
+          contents += "<div>";
+          const cells = $(row).find("td").toArray();
+          for (const cell of cells) {
+            const results = await toText(cell, $);
+            contents += `<div>\n${results}\n</div>\n`;
+          }
+          contents += "</div>";
         }
       } else {
-        const contentElements = await currentContent.contents().toArray()
-        contents = ""
-        for(const element of contentElements) {
-            const results = await toText(element, $)
-            contents += results
+        const contentElements = await currentContent.contents().toArray();
+        contents = "";
+        for (const element of contentElements) {
+          const results = await toText(element, $);
+          contents += results;
         }
 
         if (tagName == "ul") {
@@ -171,7 +181,7 @@ export default class GDoc {
     }
 
     const rawContent = lines.join("\n").replace(/\n+/g, "\n\n");
-    
+
     this.options.processed_content = md.render(rawContent);
   }
 }
