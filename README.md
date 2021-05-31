@@ -10,6 +10,12 @@ Bottlejack can take all kinds of content and turn it into a perfectly customizab
 npm install -g bottlejack
 ```
 
+### Updating
+
+```
+npm update -g bottlejack
+```
+
 ## Usage
 
 File structure should look something like this:
