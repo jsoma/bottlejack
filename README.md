@@ -69,6 +69,12 @@ pages:
     template: html_bootstrap
     slug: third-project
     filepath: content/sample-page.html
+  - type: raw
+    title: this is a link to google
+    slug: https://www.google.com
+  - type: raw
+    title: this is a link to elsewhere on the portfolio
+    slug: /custom-page/
 ```
 
 ### The homepage

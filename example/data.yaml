@@ -25,3 +25,6 @@ pages:
     template: html_bootstrap
     slug: yet-another-project
     filepath: content/sample-page.html
+  - type: raw
+    title: This links to google.com
+    slug: https://www.google.com

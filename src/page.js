@@ -13,17 +13,25 @@ export default class Page {
     }
   
     async saveTo(rootPath) {
+      if (this.options.type === "raw") {
+        this.options = this.options;
+        this.logger.info({msg: "Raw, not saving", options: this.options})
+        return;
+      }
       let savePath = null;
       if (this.options.slug && this.options.slug.indexOf(".html") != -1) {
         savePath = path.join(rootPath, this.options.slug);
       } else {
         savePath = path.join(rootPath, this.options.slug || "", "index.html");
       }
+      // Raw is just the YAML options, good for links
+      // GDoc populates from an ArchieML-formatted Google Doc
       if (this.options.type === "gdoc") {
         const doc = new GDoc(this.options.url, this.logger);
         await doc.process();
         this.options = { ...doc.options, ...this.options };
       }
+      // HTML pulls in a raw HTML doc and puts it into a template
       if (this.options.type === "html") {
         const doc = new HtmlDoc(this.options.filepath, this.logger);
         await doc.process();
