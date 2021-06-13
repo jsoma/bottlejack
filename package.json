@@ -1,6 +1,6 @@
 {
   "name": "bottlejack",
-  "version": "0.0.3",
+  "version": "0.1.0",
   "description": "Yet another static site generator",
   "main": "index.js",
   "bin": {
