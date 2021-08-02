@@ -1,3 +1,5 @@
+> You should use [final_final_v2_truefinal](https://github.com/jsoma/final_final_v2_truefinal) instead
+> 
 # Bottlejack: A static site generator
 
 Do you want to build a portfolio? *Sure, we all do.*
